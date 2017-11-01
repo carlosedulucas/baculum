@@ -1,0 +1,80 @@
+########################## Informações #######################################
+# Autor: Carlosedulucas	/ Carlos Eduardo Lucas                               #
+# Descrição: Procedimentos de instalação Baculum(Bacula-Gui) no CentOS 7     #
+# OS: Testado e homologado Oracle Linux 7.1, CentOS 7                        #
+#                                                                            #
+# Reporte os erros que encontrar para o email abaixo                         #
+# Não retire os devidos créditos                                             #
+# Site:                                                                      #
+# Email: carlosedulucas9@gmail.com                                           #
+# GitHub: https://github.com/carlosedulucas/                                 #
+# Obs.: Servidor Bacula instalado em /etc/bacula no mesmo servidor           #
+##############################################################################
+
+ 
+
+	yum install -y httpd php  php-gd php-pear php-gettext php-pdo php-xml php-common  php-mbstring php-bcmath
+	systemctl start httpd.service
+	systemctl enable httpd.service
+	firewall-cmd --permanent --zone=public --add-service=http
+	systemctl restart firewalld.service
+
+	wget -P /usr/src https://sourceforge.net/projects/bacula/files/bacula/9.0.4/bacula-gui-9.0.4.tar.gz
+
+	tar -xzvf /usr/src/bacula-gui-9.0.4.tar.gz  -C /usr/src/
+	cp -R /usr/src/bacula-gui-9.0.4/baculum/ /var/www/html/baculum
+
+	echo "apache ALL= NOPASSWD: /usr/sbin/bconsole" >> /etc/sudoers
+	echo "apache ALL= NOPASSWD: /etc/bacula/confapi" >> /etc/sudoers
+	echo "apache ALL= NOPASSWD: /usr/sbin/bdirjson" >> /etc/sudoers
+	echo "apache ALL= NOPASSWD: /usr/sbin/bbconsjson" >> /etc/sudoers
+	echo "apache ALL= NOPASSWD: /usr/sbin/bfdjson" >> /etc/sudoers
+	echo "apache ALL= NOPASSWD: /usr/sbin/bsdjson" >> /etc/sudoers
+
+	mkdir /etc/bacula/confapi
+	chown apache:apache /etc/bacula/confapi
+	chmod 777 etc/bacula/confapi
+	sed -i "s/memory_limit = 128M/memory_limit = 256M/g" /etc/php.ini
+
+	
+	htpasswd -cb /var/www/html/baculum/protected/Web/baculum.users admin definasuasenha
+	cp /var/www/html/baculum/protected/Web/baculum.users /var/www/html/baculum/protected/Web/Config/
+	cp /var/www/html/baculum/protected/Web/baculum.users /var/www/html/baculum/protected/API/Config/
+	
+    chown apache: -R /var/www/html/baculum/
+	
+	cp /var/www/html/baculum/examples/rpm/baculum-web-apache.conf /etc/httpd/conf.d/
+	sed -i 's/\/usr\/share\/baculum\/htdocs/\/var\/www\/html\/baculum/g' /etc/httpd/conf.d/baculum-web-apache.conf
+	
+
+	 cp /var/www/html/baculum/examples/rpm/baculum-api-apache.conf /etc/httpd/conf.d/
+	sed -i 's/\/usr\/share\/baculum\/htdocs/\/var\/www\/html\/baculum/g' /etc/httpd/conf.d/baculum-api-apache.conf
+	
+	
+	chown -R :apache /etc/bacula/
+	
+	cd /etc/bacula/
+	chown apache /sbin/bconsole
+	chown apache /etc/bacula/bconsole.conf
+	chmod 775 /etc/bacula/
+	
+	firewall-cmd --permanent --add-port=9095/tcp
+	firewall-cmd --permanent --add-port=9095/udp
+	firewall-cmd --permanent --add-port=9096/tcp
+	firewall-cmd --permanent --add-port=9096/udp
+
+	systemctl restart firewalld
+	systemctl restart httpd.service
+
+	Para acessá-lo utilize o navegador 
+  Configurar a API primeiro e depois a aplicação
+  API
+  url: http://$ipserver:9096
+
+  Aplicação
+  url: http://$ipserver:9095
+  
+
+  Dados Iniciais
+  Usuário: admin
+  senha cadastrada
